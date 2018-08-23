@@ -273,7 +273,7 @@ module Origami
             xrefs = [ XRef.new(0, XRef::FIRSTFREE, XRef::FREE) ]
             xrefsection = XRef::Section.new
 
-            @revisions.first.body.values.sort.each { |obj|
+            @revisions.first.body.values.sort{ |a, b| a.no <=> b.no }.each { |obj|
                 if (obj.no - lastno).abs > 1
                     xrefsection << XRef::Subsection.new(brange, xrefs)
                     brange = obj.no
