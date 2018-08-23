@@ -156,6 +156,7 @@ module Origami
             field   :Editable,      :Type => Boolean, :Default => true
             field   :Cert,          :Type => String, :Required => true
             field   :Trust,         :Type => Integer, :Default => Flags::UNKNOWN_2, :Required => true
+            field   :Source,        :Type => String
         end
 
         class User < Dictionary
@@ -294,6 +295,7 @@ module Origami
             @xreftable = xrefsection
             @trailer ||= Trailer.new
             @trailer.Size = @revisions.first.body.size + 1
+            @trailer.Root = @revisions.first.trailer.Root.reference
             @trailer.startxref = bin.size
 
             bin << @xreftable.to_s
@@ -343,7 +345,7 @@ module Origami
         #
         # Add a certificate into the address book
         #
-        def add_certificate(certfile, attributes, viewable: false, editable: false)
+        def add_certificate(certfile, attributes, viewable: false, editable: false, source: "")
             if certfile.is_a?(OpenSSL::X509::Certificate)
                 x509 = certfile
             else
@@ -360,8 +362,16 @@ module Origami
             cert.Trust = attributes
             cert.Viewable = viewable
             cert.Editable = editable
+            cert.Source = source if !source.empty?
 
             address_book.Entries.push(self << cert)
+        end
+
+        def del_certificate(id)
+          address_book = get_address_book
+          target_cert = get_certificate id
+          @revisions.first.body.delete(target_cert.reference)
+          address_book.Entries.delete(target_cert.reference)
         end
 
         private
@@ -383,7 +393,7 @@ module Origami
         def each_entry(type)
             return enum_for(__method__, type) unless block_given?
 
-            address_book = get_address_book 
+            address_book = get_address_book
 
             address_book.Entries.each do |entry|
                 entry = entry.solve
